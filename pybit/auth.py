@@ -43,41 +43,53 @@ class FitbitAuth(object):
         uri = uri + '&scope=%s' % '%20'.join(self.scope)
         return uri
 
-    def get_access_token(self, auth_code=None):
+    def authorize(self, auth_code):
+        """
+        Requests OAUTH access token and refresh token, exchanging authorization code. Updates the access_token,
+        refresh_token and expires_dt
+
+        :param auth_code: authorization code from fibit authorization callback
+        """
+        # Check if already authorized
+        if self.is_authorized:
+            return
+        if not auth_code or auth_code == '':
+            raise ValueError('Authorization code cannot be blank or None')
+
+        try:
+            resp = self._call(client_id=self.client_id,
+                              grant_type='authorization_code',
+                              redirect_uri=self.redirect_uri,
+                              code=auth_code)
+            print('User is authorized. Call get_access_token() for OAUTH access token needed for API calls')
+        except ValueError as e:
+            self.is_authorized = False
+            raise ValueError('Failed to authorize. %s' % e)
+
+        # Update vars
+        self.access_token = resp['access_token']
+        self.refresh_token = resp['refresh_token']
+        self.user_id = resp['user_id']
+        self.expires_dt = datetime.datetime.now() + datetime.timedelta(seconds=resp['expires_in'])
+        self.is_authorized = True
+
+    def get_access_token(self):
         """
         Retrieves the most current access token. Will automatically request token refresh if access token is expired.
-        If an auth code is provided (newly authorized user), then exchange code for token
 
-        :param auth_code: Default None. If provided then it will be exchanged for an access token
         :return: access token
         """
-        # If no auth_code and have refresh_token, then refresh
-        concat = '%s:%s' % (self.client_id, self.client_secret)
-        header = {'Authorization': 'Basic %s' % str(base64.b64encode(concat.encode('ascii')), 'utf-8'),
-                  'Content-Type': 'application/x-www-form-urlencoded'}
+        if not self.is_authorized:
+            raise PermissionError('Currently not authorized, call get_auth_url() to generate a Fitbit user '
+                                  'authorization page, then call authorize() with access code from the callback')
 
-        if not auth_code:
-            # No auth code, check if authorized, if not raise error
-            if not self.is_authorized:
-                raise PermissionError('Not authorized and auth_code not provided. Call generate_auth_url to generate a '
-                                      'URL for the user to authorize the app')
-
-            # Check token expiry
-            if not isinstance(self.expires_dt, datetime.datetime):
-                raise ValueError('expires_dt is not a valid datetime object')
-            if self.expires_dt < datetime.datetime.now():
-                # Expired, call token refresh. TODO: put in try,except clause for error handling
-                self._refresh_token()
-            return self.access_token
-
-        # auth_code provided (new authorized user), request access token
-        else:
-            data = {'client_id': self.client_id,
-                    'grant_type': 'authorization_code',
-                    'redirect_uri': self.redirect_uri,
-                    'code': auth_code}
-            self.is_authorized = True
-            return self.access_token
+        # Check token expiry
+        if not isinstance(self.expires_dt, datetime.datetime):
+            raise ValueError('expires_dt is not a valid datetime object')
+        if self.expires_dt < datetime.datetime.now():
+            # Expired, call token refresh. TODO: put in try,except clause for error handling
+            self._refresh_token()
+        return self.access_token
 
     def revoke_access(self):
         # Call API to revoke token and deauthorize user
@@ -85,10 +97,31 @@ class FitbitAuth(object):
 
     def _refresh_token(self):
         # Update access_token, refresh_token and expires_dt
-        pass
+        # grant_type=refresh_token&refresh_token=abcdef01234567890abcdef01234567890abcdef01234567890abcdef0123456
+        try:
+            resp = self._call(grant_type='refresh_token', refresh_token=self.refresh_token)
+        except ValueError as e:
+            raise ValueError('Failed to refresh expired token: %s' % e)
+
+        # Update vars
+        self.access_token = resp['access_token']
+        self.refresh_token = resp['refresh_token']
+        self.expires_dt = datetime.datetime.now() + datetime.timedelta(seconds=resp['expires_in'])
 
     def _call(self, **kwargs):
-        pass
+        concat = '%s:%s' % (self.client_id, self.client_secret)
+        header = {'Authorization': 'Basic %s' % str(base64.b64encode(concat.encode('ascii')), 'utf-8'),
+                  'Content-Type': 'application/x-www-form-urlencoded'}
+
+        auth_req = requests.post(self.auth_uri, header=header, data=kwargs)
+
+        # Fitbit API Exception Handling
+        if auth_req.status_code != 200:
+            # Raise Error
+            raise ValueError('Response Status: %d. Fitbit API Error %s' % (auth_req.status_code,
+                                                                           auth_req.json()['errors']))
+        return auth_req.json()
+
 
 
 
