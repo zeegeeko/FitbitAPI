@@ -1,24 +1,7 @@
 import requests
 import json
 import base64
-
-
-"""
-concat = client['id'] + ':' + client['secret']
-    header = {'Authorization': 'Basic ' + str(base64.b64encode(concat.encode('ascii')), 'utf-8'),
-              'Content-Type': 'application/x-www-form-urlencoded'}
-
-    body = {'client_id': client['id'],
-            'grant_type': 'authorization_code',
-            'redirect_uri': 'https://fitbit.inferre.com/',
-            'code': auth_code}
-
-    acg = requests.post(url, headers=header, data=body)
-    # TODO: Exception handling here
-    oauth_token.access_token = acg.json()['access_token']
-    oauth_token.refresh_token = acg.json()['refresh_token']
-    oauth_token.generated_date = datetime.datetime.now()
-"""
+import datetime
 
 
 class FitbitAuth(object):
@@ -35,8 +18,9 @@ class FitbitAuth(object):
         if not scope:
             self.scope = self.full_scope
         else:
-            if set(scope).issubset(set(self.full_scope)):
-                self.scope = scope
+            lscope = [i.lower() for i in scope]
+            if set(lscope).issubset(set(self.full_scope)):
+                self.scope = lscope
             else:
                 raise ValueError('Scope: %s is invalid' % scope)
         self.access_token = access_token
@@ -45,10 +29,11 @@ class FitbitAuth(object):
         self.redirect_uri = redirect_uri
 
         # if any of access_token, expires_in, and refresh_token is None, then this is not a pre-authorized user.
-        # will have to return the authorization uri, with the requested scope
         if not all([self.access_token, self.refresh_token, self.expires_dt]):
-            # Generate authorization URI
-            pass
+            # set authorized to false
+            self.is_authorized = False
+        else:
+            self.is_authorized = True
 
     def generate_auth_url(self):
         # Authorization code is returned on callback per OAUTH2 spec. auth code must be exchanged within 1 hour
@@ -61,23 +46,29 @@ class FitbitAuth(object):
     def get_access_token(self, auth_code=None):
         # If no auth_code and have refresh_token, then refresh
         concat = '%s:%s' % (self.client_id, self.client_secret)
-        header = {'Authorization': 'Basic ' + str(base64.b64encode(concat.encode('ascii')), 'utf-8'),
+        header = {'Authorization': 'Basic %s' % str(base64.b64encode(concat.encode('ascii')), 'utf-8'),
                   'Content-Type': 'application/x-www-form-urlencoded'}
 
         if not auth_code:
-            body = {'client_id': self.client_id,
+            # No auth code, check if authorized, if not raise error
+            if not self.is_authorized:
+                raise PermissionError('Not authorized and no authorization code. Call generate_auth_url to generate a '
+                                      'URL for the user to authorize the app')
+
+            data = {'client_id': self.client_id,
                     'grant_type': 'authorization_code',
                     'redirect_uri': self.redirect_uri,
                     'code': auth_code}
         # else refresh
         else:
-            body = {'grant_type': 'refresh_token',
+            data = {'grant_type': 'refresh_token',
                     'refresh_token': self.refresh_token}
 
         pass
 
     def revoke_access(self):
-        pass
+        # Call API to revoke token and deauthorize user
+        self.is_authorized = False
 
     def _call(self, **kwargs):
         pass
