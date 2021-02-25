@@ -44,6 +44,13 @@ class FitbitAuth(object):
         return uri
 
     def get_access_token(self, auth_code=None):
+        """
+        Retrieves the most current access token. Will automatically request token refresh if access token is expired.
+        If an auth code is provided (newly authorized user), then exchange code for token
+
+        :param auth_code: Default None. If provided then it will be exchanged for an access token
+        :return: access token
+        """
         # If no auth_code and have refresh_token, then refresh
         concat = '%s:%s' % (self.client_id, self.client_secret)
         header = {'Authorization': 'Basic %s' % str(base64.b64encode(concat.encode('ascii')), 'utf-8'),
@@ -52,23 +59,33 @@ class FitbitAuth(object):
         if not auth_code:
             # No auth code, check if authorized, if not raise error
             if not self.is_authorized:
-                raise PermissionError('Not authorized and no authorization code. Call generate_auth_url to generate a '
+                raise PermissionError('Not authorized and auth_code not provided. Call generate_auth_url to generate a '
                                       'URL for the user to authorize the app')
 
+            # Check token expiry
+            if not isinstance(self.expires_dt, datetime.datetime):
+                raise ValueError('expires_dt is not a valid datetime object')
+            if self.expires_dt < datetime.datetime.now():
+                # Expired, call token refresh. TODO: put in try,except clause for error handling
+                self._refresh_token()
+            return self.access_token
+
+        # auth_code provided (new authorized user), request access token
+        else:
             data = {'client_id': self.client_id,
                     'grant_type': 'authorization_code',
                     'redirect_uri': self.redirect_uri,
                     'code': auth_code}
-        # else refresh
-        else:
-            data = {'grant_type': 'refresh_token',
-                    'refresh_token': self.refresh_token}
-
-        pass
+            self.is_authorized = True
+            return self.access_token
 
     def revoke_access(self):
         # Call API to revoke token and deauthorize user
         self.is_authorized = False
+
+    def _refresh_token(self):
+        # Update access_token, refresh_token and expires_dt
+        pass
 
     def _call(self, **kwargs):
         pass
