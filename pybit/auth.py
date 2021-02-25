@@ -10,8 +10,8 @@ class FitbitAuth(object):
     auth_uri = 'https://www.fitbit.com/oauth2/authorize'
     full_scope = ['activity', 'heartrate', 'location', 'nutrition', 'profile', 'settings', 'sleep', 'social', 'weight']
 
-    def __init__(self, client_id, client_secret, scope=None, access_token=None, expires_dt=None, refresh_token=None,
-                 redirect_uri=None):
+    def __init__(self, client_id, client_secret, scope=None, user_id=None, access_token=None, expires_dt=None,
+                 refresh_token=None, redirect_uri=None):
         self.client_id = client_id
         self.client_secret = client_secret
         # Check if scope is correct, if empty or None, use full scope. Raise ValueError if invalid scope
@@ -27,6 +27,7 @@ class FitbitAuth(object):
         self.expires_dt = expires_dt
         self.refresh_token = refresh_token
         self.redirect_uri = redirect_uri
+        self.user_id = user_id
 
         # if any of access_token, expires_in, and refresh_token is None, then this is not a pre-authorized user.
         if not all([self.access_token, self.refresh_token, self.expires_dt]):
@@ -36,6 +37,12 @@ class FitbitAuth(object):
             self.is_authorized = True
 
     def generate_auth_url(self):
+        """
+        Generates a Fitbit user authorization page. Fitbit API sends the authorization code on callback to the
+        redirect_uri.
+
+        :return: Authorization URL to send to user
+        """
         # Authorization code is returned on callback per OAUTH2 spec. auth code must be exchanged within 1 hour
         uri = self.auth_uri
         uri = uri + '?response_type=code&client_id=%s' % self.client_id
@@ -57,7 +64,8 @@ class FitbitAuth(object):
             raise ValueError('Authorization code cannot be blank or None')
 
         try:
-            resp = self._call(client_id=self.client_id,
+            resp = self._call('/token',
+                              client_id=self.client_id,
                               grant_type='authorization_code',
                               redirect_uri=self.redirect_uri,
                               code=auth_code)
@@ -87,19 +95,25 @@ class FitbitAuth(object):
         if not isinstance(self.expires_dt, datetime.datetime):
             raise ValueError('expires_dt is not a valid datetime object')
         if self.expires_dt < datetime.datetime.now():
-            # Expired, call token refresh. TODO: put in try,except clause for error handling
-            self._refresh_token()
+            # Expired, call token refresh.
+            try:
+                self._refresh_token()
+            except ValueError as e:
+                raise ValueError(e)
         return self.access_token
 
     def revoke_access(self):
         # Call API to revoke token and deauthorize user
+        try:
+            resp = self._call('/revoke', access_token=self.access_token)
+        except ValueError as e:
+            raise ValueError('Failed to revoke token: %s' % e)
         self.is_authorized = False
 
     def _refresh_token(self):
         # Update access_token, refresh_token and expires_dt
-        # grant_type=refresh_token&refresh_token=abcdef01234567890abcdef01234567890abcdef01234567890abcdef0123456
         try:
-            resp = self._call(grant_type='refresh_token', refresh_token=self.refresh_token)
+            resp = self._call('/token', grant_type='refresh_token', refresh_token=self.refresh_token)
         except ValueError as e:
             raise ValueError('Failed to refresh expired token: %s' % e)
 
@@ -108,12 +122,12 @@ class FitbitAuth(object):
         self.refresh_token = resp['refresh_token']
         self.expires_dt = datetime.datetime.now() + datetime.timedelta(seconds=resp['expires_in'])
 
-    def _call(self, **kwargs):
+    def _call(self, path, **kwargs):
         concat = '%s:%s' % (self.client_id, self.client_secret)
         header = {'Authorization': 'Basic %s' % str(base64.b64encode(concat.encode('ascii')), 'utf-8'),
                   'Content-Type': 'application/x-www-form-urlencoded'}
 
-        auth_req = requests.post(self.auth_uri, header=header, data=kwargs)
+        auth_req = requests.post(self.auth_uri + path, header=header, data=kwargs)
 
         # Fitbit API Exception Handling
         if auth_req.status_code != 200:
