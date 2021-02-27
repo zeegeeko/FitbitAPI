@@ -127,7 +127,7 @@ class FitbitAuth(object):
         header = {'Authorization': 'Basic %s' % str(base64.b64encode(concat.encode('ascii')), 'utf-8'),
                   'Content-Type': 'application/x-www-form-urlencoded'}
 
-        auth_req = requests.post(self.auth_uri + path, header=header, data=kwargs)
+        auth_req = requests.post(self.auth_uri + path, headers=header, data=kwargs)
 
         # Fitbit API Exception Handling
         if auth_req.status_code != 200:
