@@ -60,7 +60,7 @@ class Fitbit(object):
         pass
 
     def _call(self, path):
-
+        # 'Private' method to handle http requests
         user_id = self.fitbit_auth.user_id
         access_token = self.fitbit_auth.get_access_token()
         header = {'Authorization': 'Bearer %s' % access_token}
@@ -70,6 +70,7 @@ class Fitbit(object):
         if api_req.status_code != 200:
             raise ValueError('Error fetching data from %s. Response Code: %d Error: %s' % (path, api_req.status_code,
                                                                                            api_req.json()['errors']))
+        return api_req.json()
 
 
 
