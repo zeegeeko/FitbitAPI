@@ -1,3 +1,5 @@
+from auth import FitbitAuth
+
 import requests
 import json
 import datetime
@@ -8,7 +10,10 @@ class Fitbit(object):
     api_uri = 'https://api.fitbit.com'
 
     def __init__(self, fitbit_auth):
-        pass
+        # check that FitbitAuth instance is valid
+        if not isinstance(fitbit_auth, FitbitAuth):
+            raise TypeError('Constructor needs a valid FitbitAuth instance')
+        self.fitbit_auth = fitbit_auth
 
     def activity(self):
         pass
