@@ -10,8 +10,8 @@ class FitbitAuth(object):
     auth_uri = 'https://www.fitbit.com/oauth2/authorize'
     full_scope = ['activity', 'heartrate', 'location', 'nutrition', 'profile', 'settings', 'sleep', 'social', 'weight']
 
-    def __init__(self, client_id, client_secret, scope=None, user_id=None, access_token=None, expires_dt=None,
-                 refresh_token=None, redirect_uri=None):
+    def __init__(self, client_id, client_secret, redirect_uri, scope=None, user_id=None, access_token=None,
+                 expires_dt=None, refresh_token=None):
         self.client_id = client_id
         self.client_secret = client_secret
         # Check if scope is correct, if empty or None, use full scope. Raise ValueError if invalid scope
@@ -26,11 +26,15 @@ class FitbitAuth(object):
         self.access_token = access_token
         self.expires_dt = expires_dt
         self.refresh_token = refresh_token
+
+        if not redirect_uri or redirect_uri == '':
+            raise ValueError('Redirect_uri cannot be None or blank')
+
         self.redirect_uri = redirect_uri
         self.user_id = user_id
 
-        # if any of access_token, expires_in, and refresh_token is None, then this is not a pre-authorized user.
-        if not all([self.access_token, self.refresh_token, self.expires_dt]):
+        # if any of user_id, access_token, expires_in, and refresh_token is None, then this is not a pre-authorized user
+        if not all([self.user_id, self.access_token, self.refresh_token, self.expires_dt]):
             # set authorized to false
             self.is_authorized = False
         else:
@@ -109,6 +113,9 @@ class FitbitAuth(object):
         except ValueError as e:
             raise ValueError('Failed to revoke token: %s' % e)
         self.is_authorized = False
+        self.access_token = None
+        self.refresh_token = None
+        self.expires_dt = None
 
     def _refresh_token(self):
         # Update access_token, refresh_token and expires_dt
