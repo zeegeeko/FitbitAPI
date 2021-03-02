@@ -69,6 +69,7 @@ class Fitbit(object):
 
         # get access token for user, will refresh automatically on call
         try:
+            # TODO: Need to somehow hook the refresh calls so updated tokens can be persisted somewhere
             access_token = self.fitbit_auth.get_access_token()
         except (ValueError, PermissionError) as e:
             raise ValueError('Error with access token %s' % e)
