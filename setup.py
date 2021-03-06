@@ -8,4 +8,8 @@ setup(name='pybit',
       author_email='emanuel.lucban@berkeley.edu',
       license='MIT',
       packages=['pybit'],
+      install_requires=[
+            'pandas',
+            'requests'
+      ],
       zip_safe=False)

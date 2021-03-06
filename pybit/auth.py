@@ -40,11 +40,13 @@ class FitbitAuth(object):
         else:
             self.is_authorized = True
 
-    def generate_auth_url(self):
+    def generate_auth_url(self, state):
         """
         Generates a Fitbit user authorization page. Fitbit API sends the authorization code on callback to the
         redirect_uri.
 
+        :param state: string, is a value that you specify that you want returned on callback. Fitbit recommends to use
+        this for a CSRF token
         :return: Authorization URL to send to user
         """
         # Authorization code is returned on callback per OAUTH2 spec. auth code must be exchanged within 1 hour
@@ -52,6 +54,9 @@ class FitbitAuth(object):
         uri = uri + '?response_type=code&client_id=%s' % self.client_id
         uri = uri + '&redirect_uri=%s' % self.redirect_uri.replace(':', '%3A').replace('/', '%2F')
         uri = uri + '&scope=%s' % '%20'.join(self.scope)
+
+        if state is not None:
+            uri = uri + '&state=%s' % str(state)
         return uri
 
     def authorize(self, auth_code):
