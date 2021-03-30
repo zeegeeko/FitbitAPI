@@ -75,7 +75,7 @@ class Fitbit(object):
             resp = self._call(user_uri + activity_uri)
             resp_df = pd.DataFrame(resp['activities-heart-intraday']['dataset'])
             # append date to time
-            resp_df['datetime'] = str(cur_date) + resp_df['time']
+            resp_df['datetime'] = pd.to_datetime(str(cur_date) + ' ' + resp_df['time'])
             resp_df.drop(['time'], inplace=True)
             resp_df.rename({'value': 'hr'})
             ret_df = pd.concat([ret_df, resp_df], axis=0)
