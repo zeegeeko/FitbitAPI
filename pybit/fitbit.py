@@ -130,6 +130,15 @@ class Fitbit(object):
     def weight(self):
         pass
 
+    def devices(self):
+        """
+        Get a list of Fitbit devices and device details, from user, includes (id, type, battery level, and sync date)
+
+        :return: Pandas dataframe of devices
+        """
+        path = '/1/user/%s/devices.json'
+        return pd.DataFrame(self._call(path))
+
     def _call(self, path):
         # 'Private' method to handle http requests
         user_id = self.fitbit_auth.user_id
