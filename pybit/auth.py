@@ -40,13 +40,15 @@ class FitbitAuth(object):
         else:
             self.is_authorized = True
 
-    def generate_auth_url(self, state):
+    def generate_auth_url(self, state, prompt=None):
         """
         Generates a Fitbit user authorization page. Fitbit API sends the authorization code on callback to the
         redirect_uri.
 
         :param state: string, is a value that you specify that you want returned on callback. Fitbit recommends to use
         this for a CSRF token
+        :param prompt: string, either consent, login, login consent as described here
+        https://dev.fitbit.com/build/reference/web-api/oauth2/
         :return: Authorization URL to send to user
         """
         # Authorization code is returned on callback per OAUTH2 spec. auth code must be exchanged within 1 hour
@@ -57,6 +59,10 @@ class FitbitAuth(object):
 
         if state is not None:
             uri = uri + '&state=%s' % str(state)
+
+        prompt_list = ['consent', 'login', 'login consent']
+        if (prompt is not None) and (prompt.lower() in prompt_list):
+            uri = uri + '&prompt=%s' % prompt.lower().replace(' ', '%20')
         return uri
 
     def authorize(self, auth_code):
