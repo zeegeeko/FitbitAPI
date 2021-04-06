@@ -10,7 +10,7 @@ class FitbitAuth(object):
     auth_uri = 'https://www.fitbit.com/oauth2/authorize'
     full_scope = ['activity', 'heartrate', 'location', 'nutrition', 'profile', 'settings', 'sleep', 'social', 'weight']
 
-    def __init__(self, client_id, client_secret, redirect_uri, scope=None, user_id=None, access_token=None,
+    def __init__(self, client_id, client_secret, redirect_url, scope=None, user_id=None, access_token=None,
                  expires_dt=None, refresh_token=None):
         self.client_id = client_id
         self.client_secret = client_secret
@@ -27,10 +27,10 @@ class FitbitAuth(object):
         self.expires_dt = expires_dt
         self.refresh_token = refresh_token
 
-        if not redirect_uri or redirect_uri == '':
-            raise ValueError('Redirect_uri cannot be None or blank')
+        if not redirect_url or redirect_url == '':
+            raise ValueError('redirect_url cannot be None or blank')
 
-        self.redirect_uri = redirect_uri
+        self.redirect_url = redirect_url
         self.user_id = user_id
 
         # if any of user_id, access_token, expires_in, and refresh_token is None, then this is not a pre-authorized user
@@ -43,7 +43,7 @@ class FitbitAuth(object):
     def generate_auth_url(self, state, prompt=None):
         """
         Generates a Fitbit user authorization page. Fitbit API sends the authorization code on callback to the
-        redirect_uri.
+        redirect_url.
 
         :param state: string, is a value that you specify that you want returned on callback. Fitbit recommends to use
         this for a CSRF token
@@ -54,7 +54,7 @@ class FitbitAuth(object):
         # Authorization code is returned on callback per OAUTH2 spec. auth code must be exchanged within 1 hour
         uri = self.auth_uri
         uri = uri + '?response_type=code&client_id=%s' % self.client_id
-        uri = uri + '&redirect_uri=%s' % self.redirect_uri.replace(':', '%3A').replace('/', '%2F')
+        uri = uri + '&redirect_uri=%s' % self.redirect_url.replace(':', '%3A').replace('/', '%2F')
         uri = uri + '&scope=%s' % '%20'.join(self.scope)
 
         if state is not None:
@@ -82,7 +82,7 @@ class FitbitAuth(object):
             resp = self._call('/token',
                               client_id=self.client_id,
                               grant_type='authorization_code',
-                              redirect_uri=self.redirect_uri,
+                              redirect_uri=self.redirect_url,
                               code=auth_code)
             print('User is authorized. Call get_access_token() for OAUTH access token needed for API calls')
         except ValueError as e:
