@@ -1,6 +1,6 @@
 # PyBit
 **Version:** 0.1  
-**Description:** A private Python module for abstracting the Fitbit Web API
+**Description:** A private Python module for abstracting the Fitbit Web API  
 **Author:** Emanuel Lucban
 
 **Note:** I currently have no plans on publishing this module on PyPI or Conda
@@ -29,7 +29,7 @@ from pybit.auth import FitbitAuth
 **FitbitAuth** is a class for facilitating Fitbit user authorization and access token management 
 using OAUTH2 Authorization Code Grant
 
-####Constructor
+#### Constructor
 ```
 fbauth = FitBitAuth(client_id, client_secret, redirect_uri, scope=None, user_id=None, access_token=None,
                  expires_dt=None, refresh_token=None)
@@ -44,7 +44,7 @@ fbauth = FitBitAuth(client_id, client_secret, redirect_uri, scope=None, user_id=
   * **expires_dt:** datetime object of access token expiration.  
   * **refresh_token:** OAUTH2 refresh token, if user is already authorized. None otherwise.  
 
-####Methods
+#### Methods
 **generate_auth_url(state, prompt=None)**  
 returns a Fitbit authorization URL for the Fitbit user to authorize your app.  
 
