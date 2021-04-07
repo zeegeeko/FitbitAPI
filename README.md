@@ -7,12 +7,7 @@
 ___
 
 ## Installation
-* Conda
-    ```    
-    conda install /path/pybit.tar.gz
-    ```
-  
-* PIP
+* pip
     ```    
     pip install /path/pybit.tar.gz
     ```
