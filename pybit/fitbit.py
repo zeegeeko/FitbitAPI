@@ -1,4 +1,4 @@
-from auth import FitbitAuth
+from pybit.auth import FitbitAuth
 
 import requests
 import json
