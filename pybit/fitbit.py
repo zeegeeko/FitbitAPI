@@ -30,11 +30,11 @@ class Fitbit(object):
         :return: json or dataframe of time-series heartrate data
         """
         # check detail
-        if detail != '1min' or detail != '1sec':
+        if detail != '1min' and detail != '1sec':
             raise ValueError('detail must be either 1min or 1sec')
 
         # check data_format
-        if data_format != 'df' or data_format != 'json':
+        if data_format != 'df' and data_format != 'json':
             raise ValueError('data_format must be df or json')
 
         s_date, e_date = None, None
@@ -45,17 +45,17 @@ class Fitbit(object):
             s_date = start_date.date()
         else:
             try:
-                s_date = datetime.strptime(start_date, '%Y/%m/%d').date()
+                s_date = datetime.strptime(start_date, '%Y-%m-%d').date()
             except Exception as e:
                 raise ValueError('Error start_date processing string to date: %s' % e)
 
         # End date can be None or blank
-        if end_date is not None or end_date != '':
+        if end_date is not None and end_date != '':
             if end_date is type(datetime):
                 e_date = end_date.date()
             else:
                 try:
-                    e_date = datetime.strptime(end_date, '%Y/%m/%d').date()
+                    e_date = datetime.strptime(end_date, '%Y-%m-%d').date()
                 except Exception as e:
                     raise ValueError('Error end_date processing string to date: %s' % e)
         else:
