@@ -66,7 +66,7 @@ class Fitbit(object):
 
         # Since the API only allows intraday data calls for 1 day per call we have to iterate and join multiple calls
         user_uri = '/1/user/%s'
-        num_of_days = (s_date - e_date).dt.days
+        num_of_days = (e_date - s_date).days
 
         ret_df = pd.DataFrame()
         for i in range(num_of_days):
@@ -74,6 +74,9 @@ class Fitbit(object):
             activity_uri = '/activities/heart/date/%s/1d/%s.json' % (cur_date, detail)
             resp = self._call(user_uri + activity_uri)
             resp_df = pd.DataFrame(resp['activities-heart-intraday']['dataset'])
+            # check for empty dataframe
+            if resp_df.empty:
+                continue
             # append date to time
             resp_df['datetime'] = pd.to_datetime(str(cur_date) + ' ' + resp_df['time'])
             resp_df.drop(['time'], inplace=True)
@@ -117,6 +120,7 @@ class Fitbit(object):
         path = '/1/user/%s/devices.json'
         return pd.DataFrame(self._call(path))
 
+    # TODO: Will keep this for raw Fitbit API calls
     def _call(self, path):
         # 'Private' method to handle http requests
         user_id = self.fitbit_auth.user_id
